@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Мыльный калькулятор</title>
+  <meta name="theme-color" content="#2f8a5b">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap">
+  <link rel="stylesheet" href="src/styles.css">
+  <script type="module" src="src/app.js"></script>
+</head>
+<body>
+  <!-- Векторные иконки: один спрайт, используются через <use> -->
+  <svg hidden aria-hidden="true">
+    <symbol id="i-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m0 0L8 7m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.5"/><circle cx="10" cy="17" r="2.5"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+    <symbol id="i-soap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="7" width="18" height="12" rx="4"/><path d="M8 4h8" stroke-linecap="round"/></symbol>
+  </svg>
+
+  <header class="topbar no-print">
+    <div class="topbar-row">
+      <div class="brand"><span class="logo"><svg><use href="#i-soap"/></svg></span><h1>Мыльный калькулятор</h1></div>
+      <div class="menu-wrap">
+        <button type="button" id="btn-menu" class="icon-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Действия с рецептом"><svg><use href="#i-dots"/></svg></button>
+        <div class="menu" id="menu" role="menu" hidden>
+          <button type="button" role="menuitem" id="btn-print"><svg><use href="#i-print"/></svg>Печать</button>
+          <button type="button" role="menuitem" id="btn-save"><svg><use href="#i-down"/></svg>Сохранить JSON</button>
+          <label class="menu-item" role="menuitem"><svg><use href="#i-up"/></svg>Загрузить JSON<input type="file" id="file-load" accept=".json,application/json" hidden></label>
+          <button type="button" role="menuitem" id="btn-reset" class="danger"><svg><use href="#i-x"/></svg><span>Сбросить рецепт</span></button>
+        </div>
+      </div>
+    </div>
+    <!-- Краткий итог: виден на телефоне, где колонка результата скрыта за вкладкой -->
+    <div class="strip" id="strip" aria-live="polite"></div>
+  </header>
+
+  <main class="layout no-print">
+    <!-- Колонка 1: параметры -->
+    <section class="col active" data-col="params">
+      <div class="card">
+        <h2>Щёлочь</h2>
+        <div class="row">
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="lye" value="NaOH"> NaOH <small>твёрдое</small></label>
+            <label><input type="radio" name="lye" value="KOH"> KOH <small>жидкое</small></label>
+          </div>
+          <label class="check" title="Техническая KOH 90% чистоты"><input type="checkbox" id="koh90"> 90%</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Масла и вода</h2>
+        <label class="field"><span class="lbl">Вес масел</span>
+          <span class="row">
+            <span class="input"><input type="text" inputmode="decimal" id="oil-weight" aria-label="Вес масел"></span>
+            <span class="select compact"><select id="unit" aria-label="Единицы">
+              <option value="Grams">г</option>
+              <option value="Ounces">oz</option>
+              <option value="Pounds">lb</option>
+            </select></span>
+          </span>
+        </label>
+        <p class="msg" id="weight-msg"></p>
+        <p class="hint" id="weight-hint"></p>
+        <label class="field"><span class="lbl">Вода</span>
+          <span class="row">
+            <span class="select grow"><select id="water-mode" aria-label="Способ задания воды"></select></span>
+            <span class="input short"><input type="text" inputmode="decimal" id="water-value" aria-label="Значение"><span class="unit" id="water-suffix">%</span></span>
+          </span>
+        </label>
+        <p class="msg" id="water-msg"></p>
+        <p class="hint" id="water-hint"></p>
+      </div>
+
+      <div class="card">
+        <h2>Пережир и отдушка</h2>
+        <div class="grid2">
+          <label class="field"><span class="lbl">Пережир</span>
+            <span class="input"><input type="text" inputmode="decimal" id="superfat"><span class="unit">%</span></span>
+          </label>
+          <label class="field"><span class="lbl">Отдушка</span>
+            <span class="input"><input type="text" inputmode="decimal" id="fragrance"><span class="unit" id="fragrance-suffix">г/кг</span></span>
+          </label>
+        </div>
+        <p class="msg" id="superfat-msg"></p>
+        <p class="msg" id="fragrance-msg"></p>
+      </div>
+
+      <div class="card">
+        <h2>Рецепт</h2>
+        <label class="field"><span class="lbl">Название</span><input type="text" id="recipe-name" class="plain" placeholder="Мой рецепт"></label>
+        <label class="field"><span class="lbl">Заметки</span><textarea id="notes" class="plain" rows="2" placeholder="Добавки, температура, краситель…"></textarea></label>
+      </div>
+    </section>
+
+    <!-- Колонка 2: масла и рецепт -->
+    <section class="col" data-col="oils">
+      <div class="card">
+        <h2>Масла, жиры, воски</h2>
+        <div class="input search"><svg><use href="#i-search"/></svg><input type="search" id="oil-search" placeholder="Поиск по названию или INCI" aria-label="Поиск масла"></div>
+        <ul class="oil-list" id="oil-list" role="listbox" tabindex="0"></ul>
+        <div class="oil-info" id="oil-info"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Состав <span class="count"><span id="row-count">0</span>/14</span></h2>
+          <div class="seg small" role="radiogroup" title="Чем задавать количество масел">
+            <label><input type="radio" name="mode" value="pct"> %</label>
+            <label><input type="radio" name="mode" value="wt"> вес</label>
+          </div>
+        </div>
+        <table class="recipe">
+          <thead><tr><th>Масло</th><th class="num">%</th><th class="num">Вес, <span class="unit-label"></span></th><th></th></tr></thead>
+          <tbody id="recipe-body"></tbody>
+          <tfoot><tr><th>Итого</th><th class="num" id="total-pct"></th><th class="num" id="total-wt"></th><th></th></tr></tfoot>
+        </table>
+        <p class="empty" id="recipe-empty">Выберите масло в списке и нажмите «+» (или двойной клик).</p>
+        <button type="button" id="btn-balance" class="link">Добить последнее масло до 100%</button>
+      </div>
+    </section>
+
+    <!-- Колонка 3: результаты -->
+    <section class="col" data-col="result">
+      <div class="card">
+        <h2>Результат</h2>
+        <div class="alert" id="error" hidden></div>
+        <div id="warnings"></div>
+        <div class="hero" id="hero"></div>
+        <table class="amounts">
+          <thead><tr><th></th><th class="num">г</th><th class="num">oz</th><th class="num">lb</th></tr></thead>
+          <tbody id="amounts-body"></tbody>
+        </table>
+        <dl class="stats" id="stats"></dl>
+        <details class="inci-box">
+          <summary>INCI-состав масел</summary>
+          <p id="inci"></p>
+        </details>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Свойства мыла</h2>
+          <label class="check small" title="Применить поправки к ошибочным данным оригинала (см. список масел с пометкой)">
+            <input type="checkbox" id="corrected"> исправленные данные
+          </label>
+        </div>
+        <p class="badge-corrected" id="corrected-note" hidden>⚠ Показаны <b>исправленные данные</b>: для масел с пометкой «✎» значения отличаются от soapcalc.net.</p>
+        <div class="meters" id="qualities"></div>
+        <h3>Жирные кислоты, %</h3>
+        <table class="fa">
+          <thead><tr><th></th><th class="num" title="Выбранное в списке масло">Одно</th><th class="num" title="Весь рецепт">Рецепт</th></tr></thead>
+          <tbody id="fa-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Нижняя навигация для телефона (на широких экранах скрыта, все колонки видны) -->
+  <nav class="tabbar no-print" role="tablist" aria-label="Разделы">
+    <button type="button" role="tab" data-tab="params" aria-selected="true"><svg><use href="#i-sliders"/></svg>Параметры</button>
+    <button type="button" role="tab" data-tab="oils" aria-selected="false"><svg><use href="#i-drop"/></svg>Масла</button>
+    <button type="button" role="tab" data-tab="result" aria-selected="false"><svg><use href="#i-chart"/></svg>Результат</button>
+  </nav>
+
+  <!-- Версия для печати -->
+  <section id="print-view" class="print-only"></section>
+</body>
+</html>
