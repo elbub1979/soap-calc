@@ -1,6 +1,6 @@
 import { OILS } from './oils.js';
 import {
-  calcLye, recipeProperties, oilProperties, satUnsat, waterStats, toAllUnits, findOil, num,
+  calcLye, recipeProperties, oilProperties, satUnsat, waterStats, toAllUnits, findOil, num, weightsToPercents,
   UNITS, WATER_MODES, QUALITY_KEYS, FA_KEYS, RANGES, MAX_OILS, KOH_TO_NAOH, CORRECTIONS,
 } from './calc.js';
 
@@ -78,15 +78,27 @@ function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* приватный режим и т.п. */ }
 }
 
+// Строки состояния {id, pct, wt} → формат ядра {id, weight} для перевода весов в проценты.
+const weightRows = () => state.rows.map((r) => ({ id: r.id, weight: r.wt }));
+
+// Проценты строк: в режиме «%» — как введены, в режиме «вес» — из весов по правилу сайта.
+function rowPercents() {
+  if (state.mode === 'pct') return state.rows.map((r) => num(r.pct));
+  return weightsToPercents(weightRows()).pcts;
+}
+
+// В режиме «вес» в расчёт уходят округлённые проценты и суммарный вес — ровно как на soapcalc.net.
 function selectedOilsForCalc() {
-  return state.rows.map((r) => (state.mode === 'pct'
-    ? { id: r.id, amount: r.pct, weight: '' }
-    : { id: r.id, amount: '', weight: r.wt }));
+  if (state.mode === 'pct') return state.rows.map((r) => ({ id: r.id, amount: r.pct, weight: '' }));
+  const pcts = rowPercents();
+  const anyWeight = state.rows.some((r) => num(r.wt) > 0);
+  return state.rows.map((r, i) => ({ id: r.id, amount: anyWeight ? String(pcts[i]) : '', weight: '' }));
 }
 
 function inputForCalc() {
+  const oilWeight = state.mode === 'pct' ? num(state.oilWeight) : weightsToPercents(weightRows()).total;
   return {
-    oilWeight: num(state.oilWeight), oilWeightUnit: state.unit, selectedOils: selectedOilsForCalc(),
+    oilWeight, oilWeightUnit: state.unit, selectedOils: selectedOilsForCalc(),
     lyeType: state.lyeType, is90KOH: state.is90KOH, superFat: num(state.superFat),
     waterOption: state.waterOption, waterValue: state.waterValue, fragranceRatio: num(state.fragrance),
   };
@@ -346,9 +358,10 @@ function renderDerivedColumn(res) {
   const total = state.mode === 'pct' ? num(state.oilWeight) : res.oilWeight;
   let sumPct = 0, sumWt = 0;
   const wtSum = state.rows.reduce((a, r) => a + num(r.wt), 0);
+  const pcts = rowPercents();
   $('recipe-body').querySelectorAll('tr[data-i]').forEach((tr) => {
-    const r = state.rows[+tr.dataset.i];
-    const pct = state.mode === 'pct' ? num(r.pct) : (wtSum > 0 ? (num(r.wt) / wtSum) * 100 : 0);
+    const i = +tr.dataset.i, r = state.rows[i];
+    const pct = pcts[i];
     const wt = state.mode === 'pct' ? (pct / 100) * total : num(r.wt);
     sumPct += pct; sumWt += wt;
     const d = tr.querySelector('.derived');
@@ -395,10 +408,11 @@ function renderValidation() {
   const mode = state.waterOption;
   const wv = String(state.waterValue).trim();
   const wvNum = parseFloat(wv);
+  // Как на сайте: % от масел — (0; 100], концентрация — (0; 100): при 100% воды не будет.
   const waterOk = mode === 'water_lye_ratio'
     ? /^\d+(\.\d+)?:\d+(\.\d+)?$/.test(wv) && num(wv.split(':')[1]) > 0
-    : Number.isFinite(wvNum) && wvNum > 0 && wvNum < 100;
-  setMsg('water-msg', waterOk ? '' : (mode === 'water_lye_ratio' ? 'Введите соотношение в виде 2:1 или 2.5:1.' : 'Введите процент больше 0 и меньше 100.'), true);
+    : Number.isFinite(wvNum) && wvNum > 0 && (mode === 'water_percentage' ? wvNum <= 100 : wvNum < 100);
+  setMsg('water-msg', waterOk ? '' : (mode === 'water_lye_ratio' ? 'Введите соотношение в виде 2:1 или 2.5:1.' : mode === 'water_percentage' ? 'Введите процент от 1 до 100.' : 'Введите концентрацию больше 0 и меньше 100.'), true);
   if (!waterOk) errors.push('вода');
 
   const ow = num(state.oilWeight, NaN);
@@ -455,17 +469,16 @@ function renderAmounts(res) {
   $('inci').textContent = res.error ? '' : inciList();
   $('stats').innerHTML = res.error ? '' : `
     <dt>Вода, % от масел</dt><dd>${fmt(ws.waterPercent, 2)}%</dd>
-    <dt>Концентрация щёлочи</dt><dd>${fmt(ws.lyeConcentration, 2)}%</dd>
-    <dt>Вода : щёлочь</dt><dd>${fmt(ws.waterLyeRatio, 2)} : 1</dd>
+    <dt>Концентрация щёлочи</dt><dd>${fmt(ws.lyeConcentration, 3)}%</dd>
+    <dt>Вода : щёлочь</dt><dd>${fmt(ws.waterLyeRatio, 4)} : 1</dd>
     <dt>Пережир</dt><dd>${fmt(num(state.superFat), 1)}%</dd>`;
 }
 
 // Состав для этикетки: INCI-названия масел по убыванию доли (как на странице итогов soapcalc.net).
 function inciList() {
-  const wtSum = state.rows.reduce((a, r) => a + num(r.wt), 0);
-  const share = (r) => (state.mode === 'pct' ? num(r.pct) : wtSum > 0 ? num(r.wt) / wtSum : 0);
-  return [...state.rows].sort((a, b) => share(b) - share(a))
-    .map((r) => findOil(r.id)?.inci_name).filter(Boolean).join(', ');
+  const pcts = rowPercents();
+  return state.rows.map((r, i) => ({ r, p: pcts[i] })).sort((a, b) => b.p - a.p)
+    .map(({ r }) => findOil(r.id)?.inci_name).filter(Boolean).join(', ');
 }
 
 function renderProps(one, all) {
@@ -497,9 +510,11 @@ function renderPrint(res, all) {
   if (res.error) { $('print-view').innerHTML = `<p>${esc(res.error)}</p>`; return; }
   const u = state.unit;
   const total = res.oilWeight;
+  const pcts = rowPercents();
   const oilRows = state.rows.map((r, i) => {
-    const pct = state.mode === 'pct' ? num(r.pct) : (num(r.wt) / total) * 100;
-    const w = toAllUnits(u, (pct / 100) * total);
+    const pct = pcts[i];
+    // В режиме «вес» печатаем вес как введён (как сайт), в режиме «%» — из процента.
+    const w = toAllUnits(u, state.mode === 'wt' ? num(r.wt) : (pct / 100) * total);
     return `<tr><td>${i + 1}</td><td>☐</td><td>${esc(findOil(r.id)?.name || '')}</td><td class="num">${fmt(pct, 2)}</td><td class="num">${fmt(w.g, 2)}</td><td class="num">${fmt(w.oz, 2)}</td><td class="num">${fmt(w.lb, 3)}</td></tr>`;
   }).join('');
   $('print-view').innerHTML = `

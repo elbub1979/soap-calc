@@ -113,6 +113,10 @@ export function resolveOils(rows, oilWeight) {
   let result;
 
   if (hasPct) {
+    // Как на сайте: если заданы и проценты, и веса, и они расходятся — предупреждаем, считаем по процентам.
+    if (hasWt && !(total <= 0 || active.every((r) => Math.abs(num(r.weight) - (num(r.amount) / 100) * total) <= 0.005))) {
+      warnings.push('Заданы и проценты, и веса, и они не сходятся; расчёт по процентам.');
+    }
     const sum = parseFloat(active.reduce((a, r) => a + num(r.amount), 0).toFixed(1));
     if (sum !== 100) {
       const diff = parseFloat((100 - sum).toFixed(4));
@@ -129,6 +133,28 @@ export function resolveOils(rows, oilWeight) {
     total = sum;
   }
   return { activeOils: result, oilWeight: total, warnings, error: null };
+}
+
+/**
+ * Перевод введённых весов в проценты так, как это делает интерфейс soapcalc.net:
+ * каждый процент округляется до 0.01, а остаток до 100 отдаётся самому крупному маслу.
+ * Щёлочь на сайте считается уже от этих округлённых процентов, поэтому для точного
+ * совпадения цифр повторяем это поведение.
+ */
+export function weightsToPercents(rows) {
+  const active = rows.filter(isActive);
+  const total = active.reduce((a, r) => a + num(r.weight), 0);
+  let maxI = -1, maxV = -1;
+  const pcts = active.map((r, i) => {
+    const p = total > 0 ? parseFloat(((num(r.weight) / total) * 100).toFixed(2)) : 0;
+    if (p > maxV) { maxV = p; maxI = i; }
+    return p;
+  });
+  if (total > 0 && maxI >= 0) {
+    const rem = parseFloat((100 - pcts.reduce((a, b) => a + b, 0)).toFixed(2));
+    if (rem !== 0) pcts[maxI] = parseFloat((pcts[maxI] + rem).toFixed(2));
+  }
+  return { total, pcts };
 }
 
 /** Количество отдушки. Ratio: oz/lb для фунтов/унций, g/kg для граммов. */

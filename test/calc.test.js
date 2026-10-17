@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calcLye, recipeProperties, oilProperties, satUnsat, waterStats, fragranceAmount, toAllUnits, findOil, KOH_TO_NAOH, CORRECTIONS } from '../src/calc.js';
+import { calcLye, recipeProperties, oilProperties, satUnsat, waterStats, fragranceAmount, toAllUnits, findOil, KOH_TO_NAOH, CORRECTIONS, weightsToPercents } from '../src/calc.js';
 import { OILS } from '../src/oils.js';
 
 const OLIVE = 34, COCONUT76 = 10, PALM = 36, CASTOR = 8;
@@ -78,6 +78,13 @@ test('поправки применяются только по запросу',
   assert.equal(recipeProperties(sel).properties.Iodine, Math.round((106 + 85) / 2));
   assert.equal(recipeProperties(sel, { corrected: true }).properties.Iodine, Math.round((169 + 85) / 2));
   assert.deepEqual(Object.keys(CORRECTIONS).map(Number).sort((a, b) => a - b), [31, 40, 140, 142, 144, 145, 149]);
+});
+
+test('веса → проценты как на сайте: округление до 0.01, остаток самому крупному', () => {
+  const r = weightsToPercents([{ id: OLIVE, weight: '16' }, { id: COCONUT76, weight: '12' }, { id: PALM, weight: '8' }]);
+  assert.deepEqual(r.pcts, [44.45, 33.33, 22.22]); // 44.44 + 0.01 остатка
+  assert.equal(r.total, 36);
+  assert.deepEqual(weightsToPercents([{ id: OLIVE, weight: '0' }]).pcts, [0]);
 });
 
 test('Sat:Unsat нормируется к 100', () => {
