@@ -645,8 +645,80 @@ initMenu();
 initTabs();
 refreshAll();
 
-// PWA: офлайн-кэш и установка на домашний экран. Работает только по http(s);
-// в автономном файле (file://) и в сборке service worker не нужен.
-if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && document.querySelector('link[rel=manifest]')) {
-  navigator.serviceWorker.register('sw.js').catch(() => { /* не критично */ });
+// PWA: офлайн-кэш, установка на домашний экран и предложение обновиться.
+// Работает только по http(s); в автономном файле (file://) и в сборке SW не нужен.
+initPWA();
+
+function initPWA() {
+  // ---- кнопка «Установить приложение» ----
+  // beforeinstallprompt есть в Chrome/Android/десктопе; в Safari/iOS его нет —
+  // там установка только вручную («Поделиться» → «На экран Домой»), кнопка не появится.
+  let deferredPrompt = null;
+  const inStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!inStandalone) showInstallBar();
+  });
+  window.addEventListener('appinstalled', () => { deferredPrompt = null; removeBar('pwa-install'); flash('Приложение установлено'); });
+
+  function showInstallBar() {
+    pwaBar('pwa-install', 'Установить как приложение?', 'Установить', async () => {
+      removeBar('pwa-install');
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice.catch(() => {});
+      deferredPrompt = null;
+    });
+  }
+
+  if (!('serviceWorker' in navigator) || !/^https?:/.test(location.protocol) || !document.querySelector('link[rel=manifest]')) return;
+
+  // ---- регистрация SW и предложение обновиться ----
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    // Уже скачана новая версия и ждёт активации.
+    if (reg.waiting && navigator.serviceWorker.controller) showUpdateBar(reg.waiting);
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', () => {
+        // installed + есть контроллер = это обновление, а не первая установка.
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBar(nw);
+      });
+    });
+    // Проверять обновления при возвращении на вкладку.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+  }).catch(() => { /* не критично */ });
+
+  // Новый worker встал у руля — перезагружаемся на свежую версию (один раз).
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return;
+    reloaded = true;
+    window.location.reload();
+  });
+
+  function showUpdateBar(worker) {
+    pwaBar('pwa-update', 'Доступно обновление', 'Обновить', () => {
+      removeBar('pwa-update');
+      worker.postMessage({ type: 'SKIP_WAITING' });
+    });
+  }
 }
+
+// Плашка снизу с текстом, кнопкой действия и крестиком. id — чтобы не плодить дубликаты.
+function pwaBar(id, text, actionLabel, onAction) {
+  removeBar(id);
+  const bar = document.createElement('div');
+  bar.className = 'pwa-bar';
+  bar.id = id;
+  bar.innerHTML = `<span class="pwa-text"></span>
+    <button type="button" class="pwa-act"></button>
+    <button type="button" class="pwa-close" aria-label="Закрыть">×</button>`;
+  bar.querySelector('.pwa-text').textContent = text;
+  bar.querySelector('.pwa-act').textContent = actionLabel;
+  bar.querySelector('.pwa-act').addEventListener('click', onAction);
+  bar.querySelector('.pwa-close').addEventListener('click', () => removeBar(id));
+  document.body.append(bar);
+}
+function removeBar(id) { document.getElementById(id)?.remove(); }

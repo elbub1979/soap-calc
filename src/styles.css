@@ -230,6 +230,18 @@ tbody th { font-weight: 450; color: var(--text-2); }
 .toast { position: fixed; left: 50%; bottom: 1.25rem; transform: translate(-50%, 1rem); opacity: 0; pointer-events: none; background: var(--text); color: var(--bg); padding: .6rem 1rem; border-radius: 12px; transition: .2s; z-index: 10; max-width: calc(100% - 2rem); box-shadow: var(--shadow-pop); font-size: .92rem; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* Плашка PWA: предложение установить приложение / обновиться. */
+.pwa-bar {
+  position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 11;
+  display: flex; align-items: center; gap: .7rem; max-width: calc(100% - 1.5rem);
+  background: var(--card); color: var(--text); border: 1px solid var(--line);
+  padding: .55rem .6rem .55rem .9rem; border-radius: 14px; box-shadow: var(--shadow-pop); font-size: .92rem;
+}
+.pwa-bar .pwa-text { flex: 1; min-width: 0; }
+.pwa-bar .pwa-act { border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: .9rem; padding: .4rem .8rem; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+.pwa-bar .pwa-close { border: 0; background: transparent; color: var(--muted); font-size: 1.3rem; line-height: 1; width: 32px; height: 32px; border-radius: 9px; cursor: pointer; flex: none; }
+.pwa-bar .pwa-close:hover { background: var(--track); color: var(--text); }
+
 /* ---------- планшет ---------- */
 @media (max-width: 1100px) { .layout { grid-template-columns: 1fr 1fr; } .layout > .col:last-child { grid-column: 1 / -1; } }
 
@@ -255,6 +267,7 @@ tbody th { font-weight: 450; color: var(--text-2); }
   .meter { grid-template-columns: 1fr auto 64px 2.2rem 2.8rem; gap: .45rem; }
   .hero-item .v { font-size: 1.3rem; }
   .toast { bottom: calc(4.8rem + env(safe-area-inset-bottom, 0px)); }
+  .pwa-bar { bottom: calc(4.8rem + env(safe-area-inset-bottom, 0px)); left: .75rem; right: .75rem; transform: none; max-width: none; }
 }
 
 /* ---------- сенсорные экраны ---------- */
