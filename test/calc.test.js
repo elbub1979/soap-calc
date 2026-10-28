@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calcLye, recipeProperties, oilProperties, satUnsat, waterStats, fragranceAmount, toAllUnits, findOil, KOH_TO_NAOH, CORRECTIONS, weightsToPercents } from '../src/calc.js';
 import { OILS } from '../src/oils.js';
+import { OILS_RU, oilNameRu } from '../src/oils_ru.js';
 
 const OLIVE = 34, COCONUT76 = 10, PALM = 36, CASTOR = 8;
 const rows = (...pairs) => pairs.map(([id, amount]) => ({ id, amount: String(amount), weight: '' }));
@@ -17,6 +18,17 @@ test('база: 149 масел, уникальные id, SAP > 0', () => {
   assert.equal(OILS.length, 149);
   assert.equal(new Set(OILS.map((o) => o.id)).size, 149);
   assert.ok(OILS.every((o) => o.sap > 0));
+});
+
+test('русские названия: есть для всех масел, непустые, без лишних id', () => {
+  assert.equal(Object.keys(OILS_RU).length, OILS.length);
+  for (const o of OILS) {
+    assert.ok(OILS_RU[o.id] && OILS_RU[o.id].trim(), `нет перевода для id ${o.id} (${o.name})`);
+    assert.equal(oilNameRu(o), OILS_RU[o.id]);
+  }
+  const ids = new Set(OILS.map((o) => o.id));
+  for (const k of Object.keys(OILS_RU)) assert.ok(ids.has(+k), `лишний id ${k} в OILS_RU`);
+  assert.equal(oilNameRu(null), ''); // запасной вариант не падает
 });
 
 test('NaOH: классический рецепт 40/30/30, 1000 г, SF 5%', () => {

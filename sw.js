@@ -1,7 +1,7 @@
 // Service worker: кэширует приложение целиком, чтобы оно открывалось офлайн.
 // При изменении файлов поднимите версию — старый кэш будет удалён.
-const CACHE = 'soap-calc-v5';
-const FILES = ['./', './index.html', './src/styles.css', './src/app.js', './src/calc.js', './src/oils.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'soap-calc-v6';
+const FILES = ['./', './index.html', './src/styles.css', './src/app.js', './src/calc.js', './src/oils.js', './src/oils_ru.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

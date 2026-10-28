@@ -142,15 +142,18 @@ textarea.plain { resize: vertical; }
 .oil-list li { display: flex; align-items: center; gap: .4rem; padding: .3rem .3rem .3rem .65rem; cursor: pointer; border-radius: 8px; user-select: none; color: var(--text-2); }
 .oil-list li:hover { background: var(--track); color: var(--text); }
 .oil-list li[aria-selected=true] { background: var(--accent-soft); color: var(--accent-strong); font-weight: 500; }
-.oil-list li.in-recipe .name::after { content: " ✓"; color: var(--ok); font-weight: 600; }
-.oil-list li.has-fix .name::before { content: "✎ "; color: var(--low); }
+.oil-list li.in-recipe .ru::after { content: " ✓"; color: var(--ok); font-weight: 600; }
+.oil-list li.has-fix .ru::before { content: "✎ "; color: var(--low); }
 .oil-list li.none { color: var(--muted); cursor: default; }
-.oil-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oil-list .name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.oil-list .name .ru, .oil-list .name .en { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oil-list .name .en { font-size: .76em; color: var(--muted); }
 .oil-list .add { width: 28px; height: 28px; padding: 0; border-radius: 8px; border: 0; background: transparent; color: var(--accent); font-weight: 600; font-size: 1.1rem; line-height: 1; flex: none; opacity: .55; }
 .oil-list li:hover .add, .oil-list li[aria-selected=true] .add { opacity: 1; }
 .oil-list .add:hover { background: var(--accent); color: var(--accent-ink); }
 .oil-info { margin-top: .7rem; min-height: 3.4em; }
 .oil-title { font-weight: 600; }
+.oil-en { color: var(--muted); font-size: .82em; }
 .inci { color: var(--muted); font-size: .82em; }
 .sap { margin-top: .3rem; font-size: .85em; color: var(--text-2); display: flex; flex-wrap: wrap; gap: .35rem; }
 .sap span { background: var(--track); border-radius: 6px; padding: .1rem .45rem; }
@@ -170,6 +173,7 @@ tbody th { font-weight: 450; color: var(--text-2); }
 .recipe .input input { text-align: right; padding: .3rem .5rem; }
 .recipe .derived { color: var(--muted); }
 .recipe .oil-name { cursor: pointer; word-break: break-word; }
+.recipe .oil-name .en { display: block; font-size: .76em; color: var(--muted); font-weight: 400; }
 .fix-mark { color: var(--low); }
 .recipe .remove { width: 28px; height: 28px; padding: 0; border: 0; background: transparent; color: var(--muted); border-radius: 8px; font-size: 1.1rem; line-height: 1; }
 .recipe .remove:hover { background: var(--high-soft); color: var(--high); }
@@ -270,5 +274,6 @@ tbody th { font-weight: 450; color: var(--text-2); }
   body { background: #fff; color: #000; font-size: 11pt; }
   #print-view table { margin: .6rem 0; }
   #print-view th, #print-view td { border-bottom: 1px solid #bbb; }
+  #print-view .en { color: #666; font-size: .85em; }
   .notes { white-space: pre-wrap; }
 }

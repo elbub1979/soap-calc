@@ -1,4 +1,5 @@
 import { OILS } from './oils.js';
+import { oilNameRu } from './oils_ru.js';
 import {
   calcLye, recipeProperties, oilProperties, satUnsat, waterStats, toAllUnits, findOil, num, weightsToPercents,
   UNITS, WATER_MODES, QUALITY_KEYS, FA_KEYS, RANGES, MAX_OILS, KOH_TO_NAOH, CORRECTIONS,
@@ -188,18 +189,19 @@ function changeMode(mode) {
 function renderOilList() {
   const q = $('oil-search').value.trim().toLowerCase();
   const inRecipe = new Set(state.rows.map((r) => r.id));
-  const list = OILS.filter((o) => !q || o.name.toLowerCase().includes(q) || (o.inci_name || '').toLowerCase().includes(q));
+  const list = OILS.filter((o) => !q || oilNameRu(o).toLowerCase().includes(q) || o.name.toLowerCase().includes(q) || (o.inci_name || '').toLowerCase().includes(q));
   $('oil-list').innerHTML = list.map((o) => `
     <li role="option" data-id="${o.id}" aria-selected="${o.id === state.selectedOilId}" class="${inRecipe.has(o.id) ? 'in-recipe' : ''}${CORRECTIONS[o.id] ? ' has-fix' : ''}">
-      <span class="name">${esc(o.name)}</span>
-      <button type="button" class="add" data-add="${o.id}" title="Добавить в рецепт" aria-label="Добавить ${esc(o.name)}">+</button>
+      <span class="name"><span class="ru">${esc(oilNameRu(o))}</span><span class="en">${esc(o.name)}</span></span>
+      <button type="button" class="add" data-add="${o.id}" title="Добавить в рецепт" aria-label="Добавить ${esc(oilNameRu(o))}">+</button>
     </li>`).join('') || '<li class="none">Ничего не найдено</li>';
 }
 
 function renderOilInfo() {
   const oil = state.selectedOilId != null ? findOil(state.selectedOilId) : null;
   $('oil-info').innerHTML = oil ? `
-    <div class="oil-title">${esc(oil.name)}</div>
+    <div class="oil-title">${esc(oilNameRu(oil))}</div>
+    <div class="oil-en">${esc(oil.name)}</div>
     <div class="inci">${esc(oil.inci_name || '')}</div>
     <div class="sap"><span>SAP KOH <b>${oil.sap.toFixed(3)}</b></span><span>SAP NaOH <b>${(oil.sap * KOH_TO_NAOH).toFixed(3)}</b></span><span>йод <b>${oil.iodine}</b></span><span>INS <b>${oil.INS}</b></span></div>
     ${correctionNote(oil)}`
@@ -252,7 +254,7 @@ function selectOil(id) {
 
 function addOil(id) {
   state.selectedOilId = id;
-  if (state.rows.some((r) => r.id === id)) { flash(`«${findOil(id).name}» уже в рецепте`); return selectOil(id); }
+  if (state.rows.some((r) => r.id === id)) { flash(`«${oilNameRu(findOil(id))}» уже в рецепте`); return selectOil(id); }
   if (state.rows.length >= MAX_OILS) { flash(`Не больше ${MAX_OILS} масел`); return; }
   state.rows.push({ id, pct: '', wt: '' });
   renderRecipe();
@@ -270,7 +272,7 @@ function renderRecipe() {
     const oil = findOil(r.id);
     const fix = CORRECTIONS[r.id] ? '<span class="fix-mark" title="Для этого масла есть поправка к данным оригинала">✎ </span>' : '';
     return `<tr data-i="${i}">
-      <td class="oil-name" title="${esc(oil?.inci_name || '')}">${fix}${esc(oil?.name || `id ${r.id}`)}</td>
+      <td class="oil-name" title="${esc(oil?.inci_name || '')}">${fix}${esc(oil ? oilNameRu(oil) : `id ${r.id}`)}${oil ? `<span class="en">${esc(oil.name)}</span>` : ''}</td>
       <td class="num">${key === 'pct' ? `<span class="input"><input type="text" inputmode="decimal" value="${esc(r.pct)}" aria-label="Процент"></span>` : '<span class="derived"></span>'}</td>
       <td class="num">${key === 'wt' ? `<span class="input"><input type="text" inputmode="decimal" value="${esc(r.wt)}" aria-label="Вес"></span>` : '<span class="derived"></span>'}</td>
       <td><button type="button" class="remove" title="Убрать" aria-label="Убрать">−</button></td>
@@ -515,7 +517,8 @@ function renderPrint(res, all) {
     const pct = pcts[i];
     // В режиме «вес» печатаем вес как введён (как сайт), в режиме «%» — из процента.
     const w = toAllUnits(u, state.mode === 'wt' ? num(r.wt) : (pct / 100) * total);
-    return `<tr><td>${i + 1}</td><td>☐</td><td>${esc(findOil(r.id)?.name || '')}</td><td class="num">${fmt(pct, 2)}</td><td class="num">${fmt(w.g, 2)}</td><td class="num">${fmt(w.oz, 2)}</td><td class="num">${fmt(w.lb, 3)}</td></tr>`;
+    const oil = findOil(r.id);
+    return `<tr><td>${i + 1}</td><td>☐</td><td>${esc(oil ? oilNameRu(oil) : '')}${oil ? ` <span class="en">${esc(oil.name)}</span>` : ''}</td><td class="num">${fmt(pct, 2)}</td><td class="num">${fmt(w.g, 2)}</td><td class="num">${fmt(w.oz, 2)}</td><td class="num">${fmt(w.lb, 3)}</td></tr>`;
   }).join('');
   $('print-view').innerHTML = `
     <h1>${esc(state.recipeName || 'Рецепт мыла')}</h1>

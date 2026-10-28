@@ -13,7 +13,7 @@ const stripModuleSyntax = (src) => src
   .replace(/^import\s[\s\S]*?from\s+'[^']+';\s*$/gm, '')
   .replace(/^export\s+(const|function|let)\s/gm, '$1 ');
 
-const js = ['src/oils.js', 'src/calc.js', 'src/app.js'].map((f) => `// ---- ${f} ----\n${stripModuleSyntax(read(f))}`).join('\n');
+const js = ['src/oils.js', 'src/oils_ru.js', 'src/calc.js', 'src/app.js'].map((f) => `// ---- ${f} ----\n${stripModuleSyntax(read(f))}`).join('\n');
 const css = read('src/styles.css');
 const html = read('index.html')
   .replace('<link rel="stylesheet" href="src/styles.css">', `<style>\n${css}\n</style>`)
